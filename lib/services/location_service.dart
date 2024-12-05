@@ -4,7 +4,8 @@ import 'dart:async';
 
 class LocationService {
   Timer? _timer;
-  StreamController<LocationModel>? _controller;
+  StreamController<LocationBatch>? _controller;
+  List<LocationPoint> _locationBuffer = [];
 
   Future<bool> checkPermissions() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -23,21 +24,27 @@ class LocationService {
     return true;
   }
 
-  Stream<LocationModel> getLocationStream() {
-    _controller = StreamController<LocationModel>();
+  Stream<LocationBatch> getLocationStream() {
+    _controller = StreamController<LocationBatch>();
+    _locationBuffer = [];
 
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) async {
+    _timer = Timer.periodic(const Duration(seconds: 6), (_) async {
       try {
         Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
         );
 
-        if (_controller?.isClosed == false) {
-          _controller?.add(LocationModel(
-            latitude: position.latitude,
-            longitude: position.longitude,
+        _locationBuffer.add(LocationPoint(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        ));
+
+        if (_locationBuffer.length >= 5 && _controller?.isClosed == false) {
+          _controller?.add(LocationBatch(
+            locations: List.from(_locationBuffer),
             timestamp: DateTime.now(),
           ));
+          _locationBuffer.clear();
         }
       } catch (e) {
         _controller?.addError(e);
@@ -47,6 +54,7 @@ class LocationService {
     _controller?.onCancel = () {
       _timer?.cancel();
       _controller?.close();
+      _locationBuffer.clear();
     };
 
     return _controller!.stream;

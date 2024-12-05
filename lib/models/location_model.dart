@@ -1,19 +1,32 @@
-class LocationModel {
+class LocationPoint {
   final double latitude;
   final double longitude;
-  final DateTime timestamp;
 
-  LocationModel({
+  LocationPoint({
     required this.latitude,
     required this.longitude,
-    required this.timestamp,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'latitude': latitude,
       'longitude': longitude,
-      'timestamp': timestamp.toIso8601String(),
+    };
+  }
+}
+
+class LocationBatch {
+  final List<LocationPoint> locations;
+  final DateTime timestamp;
+
+  LocationBatch({
+    required this.locations,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'locations': locations.map((location) => location.toJson()).toList(),
     };
   }
 }

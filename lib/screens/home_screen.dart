@@ -15,9 +15,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final LocationService _locationService = LocationService();
   final ApiService _apiService = ApiService();
   bool _isTracking = false;
-  StreamSubscription<LocationModel>? _locationSubscription;
-  LocationModel? _lastLocation;
+  StreamSubscription<LocationBatch>? _locationSubscription;
+  LocationPoint? _lastLocation;
   String? _error;
+  DateTime? _lastUpdateTime;
 
   void _toggleTracking() async {
     setState(() {
@@ -46,12 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _startTracking() {
     _locationSubscription =
-        _locationService.getLocationStream().listen((location) async {
+        _locationService.getLocationStream().listen((locationBatch) async {
       setState(() {
-        _lastLocation = location;
+        _lastLocation = locationBatch.locations.last;
+        _lastUpdateTime = locationBatch.timestamp;
       });
       try {
-        await _apiService.sendLocation(location);
+        await _apiService.sendLocationBatch(locationBatch);
       } catch (e) {
         setState(() {
           _error = 'Erro ao enviar localização: $e';
@@ -140,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             Text('Latitude: ${_lastLocation?.latitude.toStringAsFixed(6)}'),
             Text('Longitude: ${_lastLocation?.longitude.toStringAsFixed(6)}'),
-            Text('Atualizado em: ${_lastLocation?.timestamp.toLocal()}'),
+            Text('Atualizado em: ${_lastUpdateTime?.toLocal()}'),
           ],
         ),
       ),
